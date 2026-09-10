@@ -1,0 +1,749 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>urbdash — Inteligência Territorial & Geolocalização</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --brand-navy: #0f1a4a;
+            --brand-navy-dark: #0a0f2e;
+            --brand-overlay: rgba(15, 26, 74, 0.88);
+            --text-light: rgba(255, 255, 255, 0.95);
+            --text-muted: rgba(255, 255, 255, 0.75);
+            --glass-bg: rgba(255, 255, 255, 0.10);
+            --glass-border: rgba(255, 255, 255, 0.28);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0f1a;
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Mensagens Toast */
+        .toast-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        .toast {
+            background: white;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toast.success { border-left: 4px solid #28a745; color: #155724; background: #d4edda; }
+        .toast.error { border-left: 4px solid #dc3545; color: #721c24; background: #f8d7da; }
+        .toast i { font-size: 20px; }
+        .toast .close-toast {
+            margin-left: auto;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ───── NAVBAR ───── */
+        .navbar {
+            background: #fff;
+            padding: 18px 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        .nav-links {
+            list-style: none;
+            display: flex;
+            gap: 80px;
+            margin: 0 auto;
+        }
+        .nav-links a {
+            color: var(--brand-navy);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            transition: opacity 0.2s;
+        }
+        .nav-links a:hover { opacity: 0.65; }
+        .btn-cadastro, .btn-logout, .btn-entrar {
+            background: var(--brand-navy);
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+            text-decoration: none;
+        }
+        .btn-cadastro:hover, .btn-logout:hover, .btn-entrar:hover { transform: scale(1.03); }
+        .btn-logout { background: #dc3545; }
+        .btn-entrar { background: #28a745; }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: var(--brand-navy);
+            font-weight: 600;
+        }
+        .user-info i { font-size: 20px; }
+        .user-buttons {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* ───── HERO ───── */
+        .hero {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url("{% static 'imagem13.jpg' %}");
+            background-size: cover;
+            background-position: center;
+            width: 100%;
+            height: 100%;
+        }
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: var(--brand-overlay);
+        }
+        .hero-content {
+            position: relative;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: start;
+        }
+
+        /* Brand */
+        .brand { display: flex; align-items: flex-end; gap: 16px; }
+        .brand-icon {
+            width: 72px;
+            height: 108px;
+            fill: #fff;
+        }
+        .brand-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 82px;
+            font-weight: 700;
+            line-height: 1;
+            color: #fff;
+            letter-spacing: -0.02em;
+        }
+        .brand-title .light { font-weight: 300; }
+        .brand-sub {
+            margin-top: 12px;
+            font-size: 18px;
+            font-weight: 400;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.4;
+        }
+
+        /* City selector */
+        .city-selector {
+            margin-top: 50px;
+            max-width: 480px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            border-radius: 999px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .city-selector button {
+            width: 42px; height: 42px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            cursor: pointer;
+            display: grid;
+            place-items: center;
+            transition: background 0.2s;
+            font-size: 18px;
+        }
+        .city-selector button:hover { background: rgba(255,255,255,0.32); }
+        .city-name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Right side */
+        .hero-right { 
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            margin-top: -30px;
+            margin-left: -40px;
+        }
+        .headline {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 52px;
+            font-weight: 300;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .headline strong { font-weight: 800; }
+
+        .stats {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 50px;
+            width: 100%;
+        }
+        .stat { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            flex: 0 1 auto;
+        }
+        .stat-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            border: 2px solid var(--glass-border);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: grid;
+            place-items: center;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            transition: transform 0.3s;
+        }
+        .stat-circle:hover { transform: scale(1.05); }
+        .stat-circle i { font-size: 60px; color: #fff; }
+        .stat-label {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #fff;
+            font-weight: 500;
+            text-align: center;
+        }
+        .stat-label strong { 
+            font-weight: 800;
+            font-size: 28px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Feature cards */
+        .features {
+            margin-top: 80px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin-left: -140px;
+            width: calc(100% + 80px);
+        }
+        .feature {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .feature i {
+            font-size: 72px;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .feature h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+            white-space: pre-line;
+            margin-bottom: 15px;
+        }
+        .feature-card {
+            margin-top: 15px;
+            padding: 28px 32px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-5px); }
+        .feature-card p {
+            font-size: 16px;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.92);
+        }
+
+        /* Modais */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #0f1a4a 0%, #1a2a6c 100%);
+            margin: auto;
+            padding: 40px;
+            border-radius: 28px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .modal-header h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            color: #fff;
+        }
+        .close {
+            color: #fff;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .close:hover { opacity: 0.7; transform: scale(1.1); }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #fff;
+            background: rgba(255,255,255,0.2);
+        }
+        .form-group input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #fff;
+            color: #0f1a4a;
+            border: none;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255,255,255,0.8);
+        }
+        .login-link a {
+            color: #fff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1200px) {
+            .hero-content { padding: 40px 30px; }
+            .stats { gap: 30px; }
+            .stat-circle { width: 130px; height: 130px; }
+            .stat-circle i { font-size: 50px; }
+            .feature h3 { font-size: 24px; }
+            .feature-card p { font-size: 14px; }
+            .feature-card { padding: 22px 24px; }
+            .hero-right { margin-left: -20px; }
+            .features { margin-left: -40px; width: calc(100% + 40px); gap: 20px; }
+        }
+        @media (max-width: 1024px) {
+            .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+            .features { grid-template-columns: repeat(2, 1fr); gap: 24px; margin-left: 0; width: 100%; }
+            .brand-title { font-size: 68px; }
+            .headline { font-size: 42px; }
+            .stats { justify-content: center; }
+            .city-selector { max-width: 400px; }
+            .hero-right { margin-left: 0; margin-top: 0; }
+        }
+        @media (max-width: 768px) {
+            .navbar { padding: 15px 20px; }
+            .nav-links { gap: 30px; }
+            .nav-links a { font-size: 11px; }
+            .btn-cadastro, .btn-logout, .btn-entrar { padding: 8px 18px; font-size: 11px; }
+            .hero-content { padding: 30px 20px; }
+            .brand-title { font-size: 52px; }
+            .headline { font-size: 32px; }
+            .stats { gap: 20px; flex-wrap: wrap; }
+            .stat-circle { width: 110px; height: 110px; }
+            .stat-circle i { font-size: 42px; }
+            .stat-label strong { font-size: 22px; }
+            .feature h3 { font-size: 20px; }
+            .modal-content { margin: 10% auto; padding: 30px; width: 95%; }
+            .user-buttons { gap: 5px; }
+        }
+        @media (max-width: 640px) {
+            .nav-links { display: none; }
+            .features { grid-template-columns: 1fr; }
+            .stats { gap: 25px; }
+            .stat-circle { width: 100px; height: 100px; }
+            .stat-circle i { font-size: 38px; }
+            .city-selector { max-width: 320px; }
+            .city-name { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Messages -->
+    <div class="toast-messages">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="toast {{ message.tags }}">
+                <i class="{% if message.tags == 'success' %}fa-solid fa-check-circle{% else %}fa-solid fa-exclamation-triangle{% endif %}"></i>
+                <span>{{ message }}</span>
+                <span class="close-toast" onclick="this.parentElement.remove()">&times;</span>
+            </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div style="width:100px;"></div>
+        <ul class="nav-links">
+            <li><a href="#">QUEM SOMOS</a></li>
+            <li><a href="#">NOSSO SERVIÇOS</a></li>
+            <li><a href="#">TUTORIAIS</a></li>
+            <li><a href="#">CONTATO</a></li>
+        </ul>
+        {% if user.is_authenticated %}
+        <div class="user-info">
+            <i class="fa-solid fa-user-circle"></i>
+            <span>{{ user.username }}</span>
+            <div class="user-buttons">
+                <a href="{% url 'index' %}" class="btn-entrar">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    ENTRAR
+                </a>
+                <a href="{% url 'logout' %}" class="btn-logout">
+                    <i class="fa-solid fa-sign-out-alt"></i>
+                    SAIR
+                </a>
+            </div>
+        </div>
+        {% else %}
+        <button class="btn-cadastro" id="openCadastroBtn">
+            <i class="fa-solid fa-user-plus"></i>
+            FAÇA SEU CADASTRO
+        </button>
+        {% endif %}
+    </header>
+
+    <!-- Modal de Cadastro -->
+    <div id="cadastroModal" class="modal {% if show_cadastro %}show{% endif %}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-user-plus"></i> Criar Conta</h2>
+                <span class="close" id="closeCadastroBtn">&times;</span>
+            </div>
+            <form method="POST" action="{% url 'cadastro' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" name="username" placeholder="Nome de usuário (máx. 20 caracteres)" maxlength="20" required value="{{ request.POST.username|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="seu@email.com" required value="{{ request.POST.email|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Senha (8-15 caracteres)" minlength="8" maxlength="15" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="confirm_password" placeholder="Confirmar senha" required>
+                </div>
+                <button type="submit" class="btn-submit">Cadastrar</button>
+                <div class="login-link">
+                    Já tem uma conta? <a id="openLoginFromCadastro">Faça login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Login -->
+    <div id="loginModal" class="modal {% if show_login %}show{% endif %}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-sign-in-alt"></i> Fazer Login</h2>
+                <span class="close" id="closeLoginBtn">&times;</span>
+            </div>
+            <form method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <input type="text" name="username" placeholder="Usuário" required value="{{ request.POST.username|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Senha" required>
+                </div>
+                <button type="submit" class="btn-submit">Entrar</button>
+                <div class="login-link">
+                    Não tem conta? <a id="openCadastroFromLogin">Cadastre-se</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay"></div>
+
+        <div class="hero-content">
+            <div class="hero-grid">
+                <!-- LEFT: BRAND -->
+                <div>
+                    <div class="brand">
+                        <svg class="brand-icon" viewBox="0 0 60 90" aria-hidden="true">
+                            <path d="M30 2 L55 25 L52 75 L40 88 L20 88 L8 75 L5 25 Z" fill="currentColor" stroke="none"/>
+                        </svg>
+                        <div>
+                            <h1 class="brand-title">urb<span class="light">dash</span></h1>
+                            <p class="brand-sub">Inteligência Territorial<br>& Geolocalização</p>
+                        </div>
+                    </div>
+
+                    <div class="city-selector">
+                        <button aria-label="Cidade anterior"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span class="city-name">{{ cidade|default:"Tianguá" }}</span>
+                        <button aria-label="Próxima cidade"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: HEADLINE + STATS -->
+                <div class="hero-right">
+                    <h2 class="headline">Dados que <strong>transformam</strong><br>cidades</h2>
+
+                    <div class="stats">
+                        {% for stat in stats %}
+                        <div class="stat">
+                            <div class="stat-circle"><i class="{{ stat.icon }}"></i></div>
+                            <p class="stat-label"><strong>{{ stat.value }}</strong> {{ stat.label }}</p>
+                        </div>
+                        {% empty %}
+                        <div class="stat">
+                            <div class="stat-circle"><i class="fa-solid fa-location-dot"></i></div>
+                            <p class="stat-label"><strong>12</strong> bairros mapeados</p>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-circle"><i class="fa-solid fa-chart-line"></i></div>
+                            <p class="stat-label"><strong>48</strong> indicadores ativos</p>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-circle"><i class="fa-solid fa-database"></i></div>
+                            <p class="stat-label"><strong>5</strong> anos de dados</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- FEATURE CARDS -->
+            <div class="features">
+                {% for feat in features %}
+                <div class="feature">
+                    <i class="{{ feat.icon }}"></i>
+                    <h3>{{ feat.title }}</h3>
+                    <div class="feature-card"><p>{{ feat.desc }}</p></div>
+                </div>
+                {% empty %}
+                <div class="feature">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <h3>Mapeamento{{ "\n" }}Geoespacial</h3>
+                    <div class="feature-card">
+                        <p>Visualização interativa de dados territoriais com camadas de infraestrutura, vulnerabilidade e uso do solo integradas em um único painel.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <h3>Indicadores{{ "\n" }}Socioespaciais</h3>
+                    <div class="feature-card">
+                        <p>Cruzamento de dados demográficos, de renda e acesso a serviços para identificar áreas de vulnerabilidade e priorizar intervenções.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i class="fa-solid fa-building"></i>
+                    <h3>Planejamento{{ "\n" }}Urbano</h3>
+                    <div class="feature-card">
+                        <p>Suporte à tomada de decisão para gestores públicos com base em evidências territoriais precisas e atualizadas.</p>
+                    </div>
+                </div>
+                <div class="feature">
+                    <i class="fa-solid fa-network-wired"></i>
+                    <h3>Infraestrutura{{ "\n" }}Integrada</h3>
+                    <div class="feature-card">
+                        <p>Monitoramento de saneamento, mobilidade, saúde e educação em tempo real para gestão coordenada de recursos municipais.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Elementos dos modais
+        const cadastroModal = document.getElementById('cadastroModal');
+        const loginModal = document.getElementById('loginModal');
+        const openCadastroBtn = document.getElementById('openCadastroBtn');
+        const closeCadastroBtn = document.getElementById('closeCadastroBtn');
+        const closeLoginBtn = document.getElementById('closeLoginBtn');
+        const openLoginFromCadastro = document.getElementById('openLoginFromCadastro');
+        const openCadastroFromLogin = document.getElementById('openCadastroFromLogin');
+
+        // Fechar toasts automaticamente após 5 segundos
+        setTimeout(() => {
+            document.querySelectorAll('.toast').forEach(toast => {
+                toast.remove();
+            });
+        }, 5000);
+
+        // Abrir modal de cadastro
+        if (openCadastroBtn) {
+            openCadastroBtn.onclick = function() {
+                cadastroModal.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        // Fechar modal de cadastro
+        if (closeCadastroBtn) {
+            closeCadastroBtn.onclick = function() {
+                cadastroModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Fechar modal de login
+        if (closeLoginBtn) {
+            closeLoginBtn.onclick = function() {
+                loginModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Abrir login a partir do cadastro
+        if (openLoginFromCadastro) {
+            openLoginFromCadastro.onclick = function(e) {
+                e.preventDefault();
+                cadastroModal.style.display = 'none';
+                loginModal.style.display = 'flex';
+            }
+        }
+
+        // Abrir cadastro a partir do login
+        if (openCadastroFromLogin) {
+            openCadastroFromLogin.onclick = function(e) {
+                e.preventDefault();
+                loginModal.style.display = 'none';
+                cadastroModal.style.display = 'flex';
+            }
+        }
+
+        // Fechar ao clicar fora
+        window.onclick = function(event) {
+            if (event.target == cadastroModal) {
+                cadastroModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            if (event.target == loginModal) {
+                loginModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Auto-fechar mensagens de sucesso/erro
+        if (window.location.search.includes('show_cadastro=true')) {
+            cadastroModal.style.display = 'flex';
+        }
+        if (window.location.search.includes('show_login=true')) {
+            loginModal.style.display = 'flex';
+        }
+    </script>
+</body>
+</html>

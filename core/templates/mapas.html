@@ -1,0 +1,1109 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=1.0, viewport-fit=cover">
+    <title>Mapa Interativo — Tianguá | Inteligência Territorial</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- AOS Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* ============================================================
+           RESET & BASE
+        ============================================================ */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --green-400: #4ade80;
+            --green-500: #22c55e;
+            --green-700: #15803d;
+            --bg-dark: #050e08;
+            --card-bg: rgba(10, 25, 15, 0.82);
+            --card-border: rgba(74, 222, 128, 0.18);
+            --card-border-hover: rgba(74, 222, 128, 0.45);
+            --font-heading: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        html {
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            width: 100% !important;
+            position: relative !important;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            min-height: 100vh;
+            background: var(--bg-dark);
+            position: relative;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            color: white;
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        /* ============================================================
+           BACKGROUND SYSTEM
+        ============================================================ */
+        .background-slideshow {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 1.8s ease-in-out;
+        }
+
+        .slide.active { opacity: 1; }
+
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0, 20, 0, 0.78) 0%, rgba(0, 30, 0, 0.65) 50%, rgba(0, 20, 0, 0.78) 100%);
+            z-index: 1;
+            backdrop-filter: blur(2px);
+        }
+
+        .grid-pattern {
+            position: fixed;
+            inset: 0;
+            background-image: linear-gradient(rgba(74, 222, 128, 0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(74, 222, 128, 0.025) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            z-index: 2;
+            animation: orbFloat 12s ease-in-out infinite;
+        }
+        .orb-1 { width: 350px; height: 350px; background: rgba(34, 197, 94, 0.06); top: -100px; right: 10%; animation-delay: 0s; }
+        .orb-2 { width: 280px; height: 280px; background: rgba(74, 222, 128, 0.05); bottom: 5%; left: 5%; animation-delay: -5s; }
+        .orb-3 { width: 200px; height: 200px; background: rgba(21, 128, 61, 0.07); top: 45%; right: 2%; animation-delay: -9s; }
+
+        @keyframes orbFloat {
+            0%, 100% { transform: translateY(0) scale(1); }
+            33% { transform: translateY(-25px) scale(1.04); }
+            66% { transform: translateY(15px) scale(0.97); }
+        }
+
+        .main-content { position: relative; z-index: 3; min-height: 100vh; width: 100%; overflow-x: hidden; }
+
+        /* ============================================================
+           NAVBAR
+        ============================================================ */
+        nav.site-nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            width: 100%;
+            background: rgba(5, 14, 8, 0.75);
+            backdrop-filter: blur(24px) saturate(1.4);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .nav-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .nav-brand { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; flex-shrink: 0; }
+        .nav-brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--green-500), var(--green-700)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: white; box-shadow: 0 0 16px rgba(34, 197, 94, 0.3); }
+        .nav-brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+        .nav-brand-title { font-family: var(--font-heading); font-weight: 700; font-size: 0.9rem; color: var(--green-400); white-space: nowrap; }
+        .nav-brand-sub { font-size: 0.65rem; color: rgba(255,255,255,0.45); white-space: nowrap; }
+        .nav-page-title { font-family: var(--font-heading); font-weight: 600; font-size: 0.95rem; color: rgba(255,255,255,0.85); display: flex; align-items: center; gap: 0.5rem; }
+        .nav-page-title i { color: var(--green-400); }
+        .nav-badge { display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 20px; padding: 0.25rem 0.75rem; font-size: 0.72rem; color: var(--green-400); font-weight: 500; }
+        .nav-actions { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+
+        .btn-nav { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1rem; border-radius: 50px; font-size: 0.82rem; font-weight: 600; text-decoration: none; border: 1px solid transparent; cursor: pointer; transition: all 0.25s ease; font-family: var(--font-body); white-space: nowrap; }
+        .btn-nav-ghost { color: rgba(255,255,255,0.75); border-color: rgba(255,255,255,0.15); background: transparent; }
+        .btn-nav-ghost:hover { color: white; border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.06); }
+        .btn-nav-primary { background: linear-gradient(135deg, var(--green-500), var(--green-700)); color: white; border-color: transparent; box-shadow: 0 0 12px rgba(34, 197, 94, 0.25); }
+        .btn-nav-primary:hover { box-shadow: 0 0 20px rgba(34, 197, 94, 0.45); transform: translateY(-1px); }
+        .btn-nav-back { color: var(--green-400); border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.06); }
+        .btn-nav-back:hover { background: rgba(74, 222, 128, 0.15); border-color: var(--green-400); transform: translateX(-2px); }
+        .nav-user-pill { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.85rem 0.35rem 0.45rem; background: rgba(74, 222, 128, 0.08); border: 1px solid rgba(74, 222, 128, 0.2); border-radius: 50px; font-size: 0.8rem; color: rgba(255,255,255,0.8); }
+        .nav-avatar { width: 26px; height: 26px; background: linear-gradient(135deg, var(--green-500), var(--green-700)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white; flex-shrink: 0; }
+
+        /* ============================================================
+           PAGE HEADER - CENTRALIZED
+        ============================================================ */
+        .page-header {
+            max-width: 1600px;
+            margin: 1.5rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header-inner {
+            background: rgba(5, 14, 8, 0.55);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            padding: 1.75rem 2rem;
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .page-header-left h1 {
+            font-family: var(--font-heading);
+            font-size: 1.65rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff, var(--green-400));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header-left p {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .header-meta-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.9rem;
+            background: rgba(74, 222, 128, 0.08);
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--green-400);
+        }
+
+        .page-header-right {
+            flex-shrink: 0;
+        }
+
+        /* ============================================================
+           METRIC BUTTONS (centralizado acima do mapa)
+           Inicialmente escondidos - só aparecem quando ativar Ocupação Urbana
+        ============================================================ */
+        .metric-controls {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 0.8rem;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(16px);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            z-index: 20;
+            white-space: nowrap;
+        }
+
+        .metric-controls.visible {
+            display: flex;
+        }
+
+        .metric-btn {
+            padding: 0.5rem 1.2rem;
+            border-radius: 40px;
+            border: none;
+            background: rgba(34, 139, 34, 0.2);
+            color: white;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .metric-btn i { font-size: 1rem; }
+        .metric-btn:hover { background: rgba(74, 222, 128, 0.3); transform: translateY(-2px); }
+        .metric-btn.active {
+            background: linear-gradient(135deg, var(--green-500), var(--green-700));
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+        }
+
+        /* ============================================================
+           MAP LAYOUT
+        ============================================================ */
+        .map-container {
+            max-width: 1600px;
+            width: calc(100% - 2rem);
+            margin: 0 auto 2rem;
+            padding: 0;
+            position: relative;
+        }
+
+        .map-wrapper {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border-radius: 22px;
+            padding: 1rem;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: visible !important;
+        }
+
+        .map-wrapper:hover {
+            border-color: var(--card-border-hover);
+            box-shadow: 0 16px 48px rgba(0,0,0,0.4), 0 0 0 1px rgba(74,222,128,0.12);
+        }
+
+        .map-tag-ribbon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .map-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 50px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--green-400);
+        }
+
+        #map {
+            height: calc(100vh - 200px);
+            min-height: 550px;
+            width: 100%;
+            border-radius: 16px;
+            z-index: 5;
+        }
+
+        .leaflet-container { width: 100% !important; max-width: 100% !important; overflow: hidden !important; }
+        .leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow, .leaflet-tile-container, .leaflet-map-pane { max-width: none !important; }
+
+        /* ============================================================
+           MAP CONTROLS (vertical pill)
+        ============================================================ */
+        .map-controls {
+            position: absolute;
+            left: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.72);
+            backdrop-filter: blur(18px);
+            padding: 14px 9px;
+            border-radius: 60px;
+            border: 1px solid rgba(74, 222, 128, 0.35);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+            overflow: visible !important;
+        }
+
+        .map-control-btn {
+            width: 46px;
+            height: 46px;
+            padding: 0;
+            background: rgba(34, 139, 34, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 50%;
+            color: rgba(255,255,255,0.85);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .map-control-btn::before {
+            content: attr(data-tooltip);
+            position: absolute;
+            left: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.92);
+            color: var(--green-400);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease;
+            font-family: var(--font-body);
+            letter-spacing: 0.3px;
+            border: 1px solid rgba(74, 222, 128, 0.4);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .map-control-btn::after {
+            content: '';
+            position: absolute;
+            left: 54px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-right: 5px solid rgba(0,0,0,0.92);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease;
+            z-index: 1000;
+        }
+
+        .map-control-btn:hover::before, .map-control-btn:hover::after { opacity: 1; visibility: visible; }
+        .map-control-btn:hover::before { transform: translateY(-50%) translateX(4px); }
+        .map-control-btn.active { background: linear-gradient(135deg, var(--green-500), var(--green-700)); border-color: var(--green-400); color: white; box-shadow: 0 0 18px rgba(74, 222, 128, 0.45); }
+        .map-control-btn:hover { background: rgba(74, 222, 128, 0.25); border-color: rgba(74, 222, 128, 0.6); color: white; transform: scale(1.08); }
+        .controls-divider { width: 28px; height: 1px; background: rgba(74, 222, 128, 0.25); margin: 2px auto; border-radius: 1px; }
+
+        /* ============================================================
+           SETORES SUBMENU
+        ============================================================ */
+        .setores-submenu {
+            position: absolute;
+            left: 66px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(5, 14, 8, 0.95);
+            backdrop-filter: blur(16px);
+            border-radius: 14px;
+            padding: 8px 0;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 190px;
+            border: 1px solid rgba(74, 222, 128, 0.35);
+            box-shadow: 0 10px 32px rgba(0,0,0,0.4);
+            z-index: 1001;
+        }
+
+        .setores-submenu.show { display: flex; }
+        .setores-submenu button {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.85);
+            padding: 10px 18px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: var(--font-body);
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .setores-submenu button i { width: 18px; color: var(--green-400); }
+        .setores-submenu button:hover { background: rgba(74, 222, 128, 0.12); color: var(--green-400); padding-left: 22px; }
+
+        /* ============================================================
+           LEGEND
+        ============================================================ */
+        .legend-ocupacao {
+            position: absolute;
+            bottom: 2rem;
+            right: 1.5rem;
+            background: rgba(5, 14, 8, 0.88);
+            backdrop-filter: blur(14px);
+            border-radius: 14px;
+            padding: 12px 16px;
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            color: white;
+            font-family: var(--font-body);
+            font-size: 10px;
+            min-width: 186px;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .legend-ocupacao h4 {
+            margin: 0 0 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-align: center;
+            color: #e2c4ff;
+            border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+            padding-bottom: 7px;
+            font-family: var(--font-heading);
+        }
+
+        .legend-ocupacao .legend-item { display: flex; align-items: center; margin-bottom: 5px; gap: 8px; }
+        .legend-ocupacao .legend-color { width: 22px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+        .legend-ocupacao .legend-label { font-size: 9px; line-height: 1.4; color: rgba(255,255,255,0.88); }
+        .legend-ocupacao .legend-note { font-size: 8.5px; color: rgba(255,255,255,0.45); text-align: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(168, 85, 247, 0.2); }
+
+        /* ============================================================
+           FOOTER
+        ============================================================ */
+        .page-footer {
+            position: relative;
+            z-index: 3;
+            border-top: 1px solid var(--card-border);
+            background: rgba(5, 14, 8, 0.7);
+            backdrop-filter: blur(12px);
+            padding: 1.25rem 2rem;
+        }
+
+        .footer-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-brand { font-family: var(--font-heading); font-size: 0.82rem; font-weight: 600; color: var(--green-400); }
+        .footer-info { font-size: 0.75rem; color: rgba(255,255,255,0.35); }
+        .footer-links { display: flex; gap: 1rem; }
+        .footer-links a { font-size: 0.75rem; color: rgba(255,255,255,0.4); text-decoration: none; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--green-400); }
+
+        .messages-container {
+            position: fixed;
+            top: 76px;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 380px;
+        }
+
+        .msg-toast {
+            padding: 0.85rem 1.25rem;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            backdrop-filter: blur(16px);
+            border: 1px solid transparent;
+            animation: slideInRight 0.4s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .msg-toast.success { background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); color: #86efac; }
+        .msg-toast.error { background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; }
+        .msg-toast.warning { background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.4); color: #fcd34d; }
+        .msg-toast.info { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #93c5fd; }
+
+        ::-webkit-scrollbar { width: 7px; height: 0; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, 0.4); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(74, 222, 128, 0.65); }
+
+        @media (max-width: 768px) {
+            .map-container { max-width: 95%; width: calc(100% - 1rem); margin: 0 auto 1.5rem; }
+            #map { min-height: 400px; height: calc(100vh - 280px); }
+            .map-controls { left: 12px; padding: 10px 7px; gap: 7px; }
+            .map-control-btn { width: 40px; height: 40px; font-size: 0.95rem; }
+            .map-control-btn::before { left: 50px; padding: 6px 10px; font-size: 0.76rem; }
+            .map-control-btn::after { left: 44px; }
+            .setores-submenu { left: 52px; min-width: 168px; }
+            .metric-controls { gap: 0.4rem; padding: 0.4rem 0.8rem; top: -45px; }
+            .metric-btn { padding: 0.35rem 0.8rem; font-size: 0.7rem; }
+            .nav-brand-text { display: none; }
+            .nav-page-title { display: none; }
+        }
+
+        @media (max-width: 550px) {
+            .metric-controls { gap: 0.3rem; padding: 0.3rem 0.6rem; }
+            .metric-btn { padding: 0.25rem 0.5rem; font-size: 0.65rem; gap: 0.3rem; }
+            .page-header-right { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="background-slideshow" id="slideshow"></div>
+<div class="overlay"></div>
+<div class="grid-pattern"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+{% if messages %}
+<div class="messages-container">
+    {% for message in messages %}
+    <div class="msg-toast {{ message.tags }}">
+        <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% elif message.tags == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="main-content">
+    <nav class="site-nav" data-aos="fade-down">
+        <div class="nav-inner">
+            <a href="/index/" class="nav-brand">
+                <div class="nav-brand-icon"><i class="fas fa-city"></i></div>
+                <div class="nav-brand-text">
+                    <span class="nav-brand-title">Inteligência Territorial</span>
+                    <span class="nav-brand-sub">Cidades do Futuro</span>
+                </div>
+            </a>
+            <div class="nav-page-title">
+                <i class="fas fa-map-marked-alt"></i>
+                Mapa Interativo
+                <div class="nav-badge"><i class="fas fa-map-marker-alt"></i> Tianguá — CE</div>
+            </div>
+            <div class="nav-actions">
+                <a href="/index/" class="btn-nav btn-nav-back"><i class="fas fa-arrow-left"></i> Voltar</a>
+                {% if user.is_authenticated %}
+                <div class="nav-user-pill"><div class="nav-avatar"><i class="fas fa-user"></i></div><span>{{ user.username }}</span></div>
+                <a href="/logout/" class="btn-nav btn-nav-ghost"><i class="fas fa-sign-out-alt"></i> Sair</a>
+                {% else %}
+                <a href="/login/" class="btn-nav btn-nav-ghost"><i class="fas fa-sign-in-alt"></i> Entrar</a>
+                <a href="/cadastro/" class="btn-nav btn-nav-primary"><i class="fas fa-user-plus"></i> Criar conta</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header" data-aos="fade-up" data-aos-delay="100">
+        <div class="page-header-inner">
+            <div class="page-header-left">
+                <h1><i class="fas fa-map-marked-alt" style="font-size:0.85em;"></i> Mapa Interativo — Tianguá</h1>
+                <p>Visualização espacial do território municipal com dados censitários por setores</p>
+                <div class="header-meta-chips">
+                    <span class="meta-chip"><i class="fas fa-map-marker-alt"></i> Tianguá, CE</span>
+                    <span class="meta-chip"><i class="fas fa-satellite"></i> Imagens de satélite</span>
+                    <span class="meta-chip"><i class="fas fa-layer-group"></i> Camadas GeoJSON</span>
+                    <span class="meta-chip"><i class="fas fa-chart-pie"></i> IBGE 2022</span>
+                </div>
+            </div>
+            <div class="page-header-right">
+                <a href="/mapas/" class="btn-nav btn-nav-primary"><i class="fas fa-map"></i> Resetar</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div class="map-wrapper">
+            <div class="map-tag-ribbon">
+                <div class="map-tag"><i class="fas fa-satellite"></i> Google Satellite</div>
+            </div>
+
+            <!-- Botões de métrica centralizados - inicialmente ocultos -->
+            <div class="metric-controls" id="metricControls">
+                <button class="metric-btn" id="btnArea" data-metric="area">
+                    <i class="fas fa-vector-square"></i> Área
+                </button>
+                <button class="metric-btn" id="btnPopulacao" data-metric="populacao">
+                    <i class="fas fa-users"></i> População
+                </button>
+                <button class="metric-btn" id="btnDomicilios" data-metric="domicilios">
+                    <i class="fas fa-home"></i> Domicílios
+                </button>
+                <button class="metric-btn" id="btnDensidade" data-metric="densidade">
+                    <i class="fas fa-chart-line"></i> Densidade
+                </button>
+            </div>
+
+            <div id="map"></div>
+
+            <div class="map-controls">
+                <button class="map-control-btn active" onclick="setSatelliteView(this)" data-tooltip="Satélite">
+                    <i class="fas fa-satellite"></i>
+                </button>
+                <button class="map-control-btn" onclick="setStreetView(this)" data-tooltip="Mapa de Ruas">
+                    <i class="fas fa-map"></i>
+                </button>
+                <div class="controls-divider"></div>
+                <button class="map-control-btn" onclick="toggleBairros()" id="btnBairros" data-tooltip="Bairros">
+                    <i class="fas fa-building"></i>
+                </button>
+                <button class="map-control-btn" id="btnSetores" data-tooltip="Setores / Ocupação">
+                    <i class="fas fa-th"></i>
+                </button>
+                <div class="controls-divider"></div>
+                <button class="map-control-btn" onclick="centerMap()" data-tooltip="Centralizar">
+                    <i class="fas fa-crosshairs"></i>
+                </button>
+            </div>
+
+            <div id="setoresSubmenu" class="setores-submenu">
+                <button onclick="toggleSetoresTodos()"><i class="fas fa-layer-group"></i> Todos os Setores</button>
+                <button onclick="toggleOcupacaoUrbana()"><i class="fas fa-city"></i> Ocupação Urbana</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <div class="footer-inner">
+            <span class="footer-brand">Inteligência Territorial | Cidades do Futuro</span>
+            <span class="footer-info">Dados: IBGE 2010 · Tianguá, Ceará · Brasil</span>
+            <div class="footer-links">
+                <a href="/index/">Início</a>
+                <a href="/mapas/">Mapas</a>
+                {% if user.is_authenticated %}
+                <a href="/logout/">Sair</a>
+                {% else %}
+                <a href="/login/">Entrar</a>
+                {% endif %}
+            </div>
+        </div>
+    </footer>
+</div>
+
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+    AOS.init({ duration: 700, once: true, offset: 80 });
+
+    // ==================== PREVENT HORIZONTAL SCROLL ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('wheel', function(e) {
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) e.preventDefault();
+        }, { passive: false });
+
+        document.body.addEventListener('touchmove', function(e) {
+            if (Math.abs(e.touches[0].clientX - (e._startX || 0)) > 10) e.preventDefault();
+        }, { passive: false });
+
+        document.body.addEventListener('touchstart', function(e) { e._startX = e.touches[0].clientX; });
+    });
+
+    // ==================== BACKGROUND SLIDESHOW ====================
+    const slideshow = document.getElementById('slideshow');
+    const slides = [
+        { django: "{% static 'imagem1.webp' %}", fallback: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1920&q=80' },
+        { django: "{% static 'imagem2.webp' %}", fallback: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&q=80' },
+        { django: "{% static 'imagem3.webp' %}", fallback: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&q=80' },
+        { django: "{% static 'imagem4.webp' %}", fallback: 'https://images.unsplash.com/photo-1444723121867-7a241cacace9?w=1920&q=80' },
+        { django: "{% static 'imagem5.webp' %}", fallback: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1920&q=80' },
+        { django: "{% static 'imagem6.webp' %}", fallback: 'https://images.unsplash.com/photo-1465447142348-e9952c393450?w=1920&q=80' },
+        { django: "{% static 'imagem7.webp' %}", fallback: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1920&q=80' },
+        { django: "{% static 'imagem8.jpeg' %}", fallback: 'https://images.unsplash.com/photo-1434082033009-b81d41d32e1a?w=1920&q=80' },
+        { django: "{% static 'imagem9.jpeg' %}", fallback: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80' },
+        { django: "{% static 'imagem10.jpeg' %}", fallback: 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1920&q=80' },
+        { django: "{% static 'imagem11.jpeg' %}", fallback: 'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1920&q=80' },
+        { django: "{% static 'imagem12.jpeg' %}", fallback: 'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=1920&q=80' }
+    ];
+
+    slides.forEach((src, i) => {
+        const div = document.createElement('div');
+        div.className = 'slide' + (i === 0 ? ' active' : '');
+        div.style.backgroundImage = `url('${src.django}'), url('${src.fallback}')`;
+        slideshow.appendChild(div);
+    });
+
+    let currentSlide = 0;
+    const allSlides = document.querySelectorAll('.slide');
+    setInterval(() => {
+        allSlides[currentSlide].classList.remove('active');
+        currentSlide = (currentSlide + 1) % allSlides.length;
+        allSlides[currentSlide].classList.add('active');
+    }, 6000);
+
+    setTimeout(() => {
+        document.querySelectorAll('.msg-toast').forEach(el => {
+            el.style.transition = 'opacity 0.5s ease';
+            el.style.opacity = '0';
+            setTimeout(() => el.remove(), 500);
+        });
+    }, 5000);
+
+    // ==================== LEAFLET MAP INIT ====================
+    const TIANGUA_COORDS = [-3.731389, -40.991667];
+    const ZOOM_LEVEL = 13;
+
+    let map = L.map('map', {
+        center: TIANGUA_COORDS,
+        zoom: ZOOM_LEVEL,
+        zoomControl: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        tap: true,
+        dragging: true,
+        inertia: true,
+        inertiaDeceleration: 3000
+    });
+
+    let googleSatellite = L.tileLayer('http://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+        attribution: '&copy; <a href="https://www.google.com/maps">Google Maps</a>',
+        maxZoom: 20,
+        minZoom: 10,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
+    });
+
+    let streetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
+        minZoom: 10
+    });
+
+    googleSatellite.addTo(map);
+
+    // ==================== DADOS GLOBAIS ====================
+    let bairrosVisivel = false;
+    let setoresVisivel = false;
+    let concentracaoUrbanaVisivel = false;
+    let currentMetric = 'area';
+
+    let territoryLayer = null;
+    let bairrosLayer = null;
+    let setoresLayer = null;
+    let concentracaoUrbanaLayer = null;
+
+    // Limites fixos
+    const limitesArea = [0.0071, 0.0456, 0.0569, 0.0632, 0.0706, 0.0813, 0.0945, 0.114, 0.1579, 0.2037, 0.2885, 0.4849, 2.4999];
+    const limitesPopulacao = [0, 141, 269, 313, 362, 439, 524, 588, 695, 748, 897, 991, 1693];
+    const limitesDomicilios = [0, 70, 96, 128, 167, 181, 208, 229, 264, 281, 342, 400, 668];
+    const limitesDensidade = [0, 514, 1308, 2296, 3101, 4210, 5130, 6033, 7330, 8869, 9434, 14451, 19657];
+    const limitesMediaPopDomicilio = [0, 2.642, 2.9, 3, 3, 3.1, 3.1, 3.2, 3.233, 3.3, 3.4, 3.5, 3.9];
+
+    const coresFixas = ['#FFFFFF', '#FFF7CC', '#FFE08A', '#FFC857', '#FFA552', '#FF7A66', '#F75C7A', '#D65DB1', '#845EC2', '#2C73D2', '#0081CF', '#1B1B3A'];
+
+    function getClasse(valor, limites) {
+        for (let i = 0; i < limites.length - 1; i++) {
+            if (valor >= limites[i] && valor < limites[i + 1]) return i;
+        }
+        return limites.length - 2;
+    }
+
+    function updateMapColors() {
+        if (!concentracaoUrbanaLayer) return;
+
+        let metricToUse = currentMetric;
+        let limites;
+
+        if (metricToUse === 'area') limites = limitesArea;
+        else if (metricToUse === 'populacao') limites = limitesPopulacao;
+        else if (metricToUse === 'domicilios') limites = limitesDomicilios;
+        else if (metricToUse === 'densidade') limites = limitesDensidade;
+        else limites = limitesArea;
+
+        concentracaoUrbanaLayer.eachLayer(layer => {
+            const feature = layer.feature;
+            if (feature && feature.properties) {
+                let valor = 0;
+                if (metricToUse === 'area') valor = parseFloat(feature.properties.AREA_KM2) || 0;
+                else if (metricToUse === 'populacao') valor = parseInt(feature.properties.Areapopulacional_v0001) || 0;
+                else if (metricToUse === 'domicilios') valor = parseInt(feature.properties.Areapopulacional_v0002) || 0;
+                else if (metricToUse === 'densidade') valor = parseFloat(feature.properties.Areapopulacional_DENSIDADE_DEMOGRAFICA_SETOR_HAB_KM2) || 0;
+
+                const classe = getClasse(valor, limites);
+                const cor = coresFixas[classe];
+                layer.setStyle({ color: cor, weight: 1.5, fillColor: cor, fillOpacity: 0.85, opacity: 0.9 });
+            }
+        });
+        updateLegend();
+    }
+
+    function updateLegend() {
+        const oldLegend = document.getElementById('legend-ocupacao');
+        if (oldLegend) oldLegend.remove();
+        if (!concentracaoUrbanaVisivel) return;
+
+        let metricName = '';
+        let metricUnit = '';
+        let limites;
+
+        if (currentMetric === 'area') { metricName = 'Área'; metricUnit = 'km²'; limites = limitesArea; }
+        else if (currentMetric === 'populacao') { metricName = 'População'; metricUnit = 'habitantes'; limites = limitesPopulacao; }
+        else if (currentMetric === 'domicilios') { metricName = 'Domicílios'; metricUnit = 'domicílios'; limites = limitesDomicilios; }
+        else if (currentMetric === 'densidade') { metricName = 'Densidade Demográfica'; metricUnit = 'hab/km²'; limites = limitesDensidade; }
+
+        const legendDiv = document.createElement('div');
+        legendDiv.id = 'legend-ocupacao';
+        legendDiv.className = 'legend-ocupacao';
+
+        let legendHtml = `<h4><i class="fas fa-chart-line"></i> ${metricName}</h4>`;
+        legendHtml += `<div style="margin-bottom: 5px; font-size: 10px; text-align: center; color: #ffd700;">↑ Valores mais altos ↑</div>`;
+
+        for (let i = limites.length - 2; i >= 0; i--) {
+            let de = limites[i];
+            let ate = limites[i + 1];
+            let label = (currentMetric === 'area') ? `${de.toFixed(4)} — ${ate.toFixed(4)} ${metricUnit}` : `${de} — ${ate} ${metricUnit}`;
+            legendHtml += `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: ${coresFixas[i]}; border: 1px solid rgba(255,255,255,0.3);"></div>
+                    <div class="legend-label">${label}</div>
+                </div>
+            `;
+        }
+
+        legendHtml += `<div style="margin-top: 5px; font-size: 10px; text-align: center; color: #ffd700;">↓ Valores mais baixos ↓</div>`;
+        legendHtml += `<div class="legend-note"><i class="fas fa-info-circle"></i> Cores mais escuras = valores mais altos</div>`;
+
+        legendDiv.innerHTML = legendHtml;
+        const mapWrapper = document.querySelector('.map-wrapper');
+        if (mapWrapper) mapWrapper.appendChild(legendDiv);
+        else document.body.appendChild(legendDiv);
+    }
+
+    function invalidateMapSize() { if (map) setTimeout(() => map.invalidateSize(), 100); }
+
+    // Função para mostrar/esconder os botões de métrica
+    function toggleMetricControls(show) {
+        const metricControls = document.getElementById('metricControls');
+        if (show) {
+            metricControls.classList.add('visible');
+        } else {
+            metricControls.classList.remove('visible');
+        }
+    }
+
+    // ==================== CARREGAR CAMADAS ====================
+    function carregarTerritorio() {
+        const geojsonUrl = "{% static 'tiangua2.geojson' %}";
+        fetch(geojsonUrl)
+            .then(response => response.json())
+            .then(data => {
+                territoryLayer = L.geoJSON(data, {
+                    style: { color: '#4ade80', weight: 3, fillColor: '#4ade80', fillOpacity: 0.15, opacity: 0.9 },
+                    onEachFeature: (f, l) => l.bindPopup('<b>Tianguá — CE</b><br>Território Municipal')
+                }).addTo(map);
+                if (territoryLayer.getBounds().isValid()) map.fitBounds(territoryLayer.getBounds(), { padding: [50, 50] });
+            })
+            .catch(error => { map.setView(TIANGUA_COORDS, ZOOM_LEVEL); L.marker(TIANGUA_COORDS).addTo(map).bindPopup('<b>Tianguá — CE</b>').openPopup(); });
+    }
+
+    function carregarBairros() {
+        const bairrosUrl = "{% static 'bairros.geojson' %}";
+        return fetch(bairrosUrl).then(response => response.json()).then(data => {
+            bairrosLayer = L.geoJSON(data, {
+                style: { color: '#ff6b6b', weight: 2, fillColor: '#ff6b6b', fillOpacity: 0.15, opacity: 0.8 },
+                onEachFeature: (f, l) => {
+                    let nome = f.properties?.NM_BAIRRO || 'Bairro';
+                    l.bindPopup(`<b>🏘️ ${nome}</b>`);
+                }
+            });
+            return true;
+        }).catch(error => { console.error('Erro bairros:', error); return false; });
+    }
+
+    function carregarSetores() {
+        const setoresUrl = "{% static 'setores.geojson' %}";
+        return fetch(setoresUrl).then(response => response.json()).then(data => {
+            setoresLayer = L.geoJSON(data, {
+                style: { color: '#3b82f6', weight: 1.5, fillColor: '#3b82f6', fillOpacity: 0.1, opacity: 0.6 },
+                onEachFeature: (f, l) => {
+                    let cod = f.properties?.CD_SETOR || 'Setor';
+                    l.bindPopup(`<b>📊 Setor: ${cod}</b>`);
+                }
+            });
+            return true;
+        }).catch(error => { console.error('Erro setores:', error); return false; });
+    }
+
+    function carregarConcentracaoUrbana() {
+        const concentracaoUrl = "{% static 'concentracaourbana.geojson' %}";
+        return fetch(concentracaoUrl).then(response => response.json()).then(data => {
+            concentracaoUrbanaLayer = L.geoJSON(data, {
+                style: { color: '#ffffb2', weight: 1.5, fillColor: '#ffffb2', fillOpacity: 0.7, opacity: 0.8 },
+                onEachFeature: (f, l) => {
+                    if (f.properties) {
+                        // Popup SIMPLIFICADO sem o número do setor
+                        const area = parseFloat(f.properties.AREA_KM2) || 0;
+                        const pop = parseInt(f.properties.Areapopulacional_v0001) || 0;
+                        const dom = parseInt(f.properties.Areapopulacional_v0002) || 0;
+                        const dens = parseFloat(f.properties.Areapopulacional_DENSIDADE_DEMOGRAFICA_SETOR_HAB_KM2) || 0;
+                        const bairro = f.properties.NM_BAIRRO || 'Sem bairro';
+                        l.bindPopup(`<b>🏘️ ${bairro}</b><br><b>Área:</b> ${area.toFixed(4)} km²<br><b>População:</b> ${pop.toLocaleString()} hab<br><b>Domicílios:</b> ${dom.toLocaleString()}<br><b>Densidade:</b> ${dens.toFixed(2)} hab/km²`);
+                    }
+                }
+            });
+            updateMapColors();
+            return true;
+        }).catch(error => { console.error('Erro ocupação urbana:', error); return false; });
+    }
+
+    // ==================== BOTÕES ====================
+    function toggleBairros() {
+        const btn = document.getElementById('btnBairros');
+        if (bairrosVisivel) {
+            if (bairrosLayer) map.removeLayer(bairrosLayer);
+            bairrosVisivel = false;
+            btn.classList.remove('active');
+        } else {
+            if (bairrosLayer) { bairrosLayer.addTo(map); bairrosVisivel = true; btn.classList.add('active'); }
+            else { carregarBairros().then(() => { bairrosLayer.addTo(map); bairrosVisivel = true; btn.classList.add('active'); }); }
+        }
+        invalidateMapSize();
+    }
+
+    function toggleSetoresTodos() {
+        const btn = document.getElementById('btnSetores');
+        document.getElementById('setoresSubmenu').classList.remove('show');
+        if (setoresVisivel) {
+            if (setoresLayer) map.removeLayer(setoresLayer);
+            setoresVisivel = false;
+            btn.classList.remove('active');
+        } else {
+            if (concentracaoUrbanaVisivel && concentracaoUrbanaLayer) { 
+                map.removeLayer(concentracaoUrbanaLayer); 
+                concentracaoUrbanaVisivel = false;
+                toggleMetricControls(false);
+            }
+            if (setoresLayer) { setoresLayer.addTo(map); setoresVisivel = true; btn.classList.add('active'); }
+            else { carregarSetores().then(() => { setoresLayer.addTo(map); setoresVisivel = true; btn.classList.add('active'); }); }
+        }
+        invalidateMapSize();
+    }
+
+    function toggleOcupacaoUrbana() {
+        const btn = document.getElementById('btnSetores');
+        document.getElementById('setoresSubmenu').classList.remove('show');
+        if (concentracaoUrbanaVisivel) {
+            if (concentracaoUrbanaLayer) map.removeLayer(concentracaoUrbanaLayer);
+            concentracaoUrbanaVisivel = false;
+            btn.classList.remove('active');
+            const legend = document.getElementById('legend-ocupacao');
+            if (legend) legend.remove();
+            // Esconde os botões de métrica
+            toggleMetricControls(false);
+        } else {
+            if (setoresVisivel && setoresLayer) { map.removeLayer(setoresLayer); setoresVisivel = false; }
+            if (concentracaoUrbanaLayer) { 
+                concentracaoUrbanaLayer.addTo(map); 
+                concentracaoUrbanaVisivel = true; 
+                btn.classList.add('active'); 
+                updateMapColors();
+                // Mostra os botões de métrica
+                toggleMetricControls(true);
+            }
+            else { 
+                carregarConcentracaoUrbana().then(() => { 
+                    concentracaoUrbanaLayer.addTo(map); 
+                    concentracaoUrbanaVisivel = true; 
+                    btn.classList.add('active'); 
+                    updateMapColors();
+                    // Mostra os botões de métrica
+                    toggleMetricControls(true);
+                }); 
+            }
+        }
+        invalidateMapSize();
+    }
+
+    function setMetric(metric) {
+        currentMetric = metric;
+        updateMapColors();
+        document.querySelectorAll('.metric-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn${metric.charAt(0).toUpperCase() + metric.slice(1)}`).classList.add('active');
+    }
+
+    function setSatelliteView(btn) {
+        if (map.hasLayer(streetLayer)) map.removeLayer(streetLayer);
+        if (!map.hasLayer(googleSatellite)) googleSatellite.addTo(map);
+        document.querySelectorAll('.map-control-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (bairrosVisivel && bairrosLayer) bairrosLayer.addTo(map);
+        if (setoresVisivel && setoresLayer) setoresLayer.addTo(map);
+        if (concentracaoUrbanaVisivel && concentracaoUrbanaLayer) concentracaoUrbanaLayer.addTo(map);
+    }
+
+    function setStreetView(btn) {
+        if (map.hasLayer(googleSatellite)) map.removeLayer(googleSatellite);
+        if (!map.hasLayer(streetLayer)) streetLayer.addTo(map);
+        document.querySelectorAll('.map-control-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        if (bairrosVisivel && bairrosLayer) bairrosLayer.addTo(map);
+        if (setoresVisivel && setoresLayer) setoresLayer.addTo(map);
+        if (concentracaoUrbanaVisivel && concentracaoUrbanaLayer) concentracaoUrbanaLayer.addTo(map);
+    }
+
+    function centerMap() { map.setView(TIANGUA_COORDS, ZOOM_LEVEL); }
+
+    // Eventos dos botões de métrica
+    document.getElementById('btnArea').addEventListener('click', () => setMetric('area'));
+    document.getElementById('btnPopulacao').addEventListener('click', () => setMetric('populacao'));
+    document.getElementById('btnDomicilios').addEventListener('click', () => setMetric('domicilios'));
+    document.getElementById('btnDensidade').addEventListener('click', () => setMetric('densidade'));
+
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarTerritorio();
+        // Carrega a camada mas não adiciona ao mapa ainda
+        carregarConcentracaoUrbana();
+        invalidateMapSize();
+    });
+
+    document.getElementById('btnSetores').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('setoresSubmenu').classList.toggle('show');
+    });
+    document.addEventListener('click', function(e) {
+        const sub = document.getElementById('setoresSubmenu');
+        if (!document.getElementById('btnSetores').contains(e.target) && !sub.contains(e.target)) sub.classList.remove('show');
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard Power BI</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a472a, #0d2e1a);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #e8f5e9;
+            border-left: 4px solid #2ecc71;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .api-url {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        button {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #27ae60;
+        }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Integração com Power BI</h1>
+        <p>Dados do sistema para análise no Power BI</p>
+    </div>
+    
+    <div class="info">
+        <strong>✅ APIs disponíveis para o Power BI:</strong><br><br>
+        
+        <strong>📁 JSON (recomendado para dados estruturados):</strong>
+        <div class="api-url">http://127.0.0.1:8000/api/dados/</div>
+        
+        <strong>📄 CSV (mais fácil para importar no Power BI):</strong>
+        <div class="api-url">http://127.0.0.1:8000/api/csv/</div>
+        
+        <strong>🔍 Com filtros:</strong>
+        <div class="api-url">http://127.0.0.1:8000/api/dados/?cidade=Tianguá&ano=2024</div>
+    </div>
+    
+    <div class="card">
+        <h3>📋 Exemplo dos dados (JSON)</h3>
+        <button onclick="carregarDados()">Carregar Exemplo</button>
+        <pre id="dadosJson">Clique no botão para carregar os dados...</pre>
+    </div>
+    
+    <div class="card">
+        <h3>🎯 Como usar no Power BI Desktop:</h3>
+        <ol>
+            <li>Abra o Power BI Desktop</li>
+            <li>Clique em <strong>"Obter Dados"</strong> &gt; <strong>"Web"</strong></li>
+            <li>Cole a URL: <code>http://127.0.0.1:8000/api/csv/</code></li>
+            <li>Clique em <strong>"OK"</strong> e depois <strong>"Carregar"</strong></li>
+            <li>Crie seus gráficos!</li>
+        </ol>
+    </div>
+    
+    <div class="card">
+        <h3>📈 Filtros disponíveis na API:</h3>
+        <ul>
+            <li><code>?cidade=Nome</code> - Filtra por cidade</li>
+            <li><code>?indicador=Nome</code> - Filtra por indicador</li>
+            <li><code>?ano=2024</code> - Filtra por ano</li>
+            <li><code>?classificacao=Bom</code> - Filtra por classificação</li>
+        </ul>
+        <p><strong>Exemplo:</strong> <code>/api/dados/?cidade=Tianguá&ano=2024</code></p>
+    </div>
+    
+    <script>
+        async function carregarDados() {
+            try {
+                const response = await fetch('/api/dados/');
+                const data = await response.json();
+                document.getElementById('dadosJson').innerHTML = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('dadosJson').innerHTML = 'Erro ao carregar: ' + error;
+            }
+        }
+    </script>
+</body>
+</html>

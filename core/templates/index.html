@@ -1,0 +1,1359 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Dashboard — Infraestrutura Urbana | Tianguá</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --green-400: #4ade80;
+            --green-500: #22c55e;
+            --green-600: #16a34a;
+            --green-700: #15803d;
+            --dark-bg: #050e08;
+            --dark-card: rgba(10, 25, 15, 0.82);
+            --dark-card-hover: rgba(15, 35, 20, 0.92);
+            --border: rgba(74, 222, 128, 0.18);
+            --border-hover: rgba(74, 222, 128, 0.45);
+            --text-primary: rgba(255, 255, 255, 0.95);
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-muted: rgba(255, 255, 255, 0.35);
+            --chart-grid: rgba(255, 255, 255, 0.06);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── BACKGROUND ─── */
+        .bg-slideshow {
+            position: fixed; inset: 0; z-index: 0; overflow: hidden;
+        }
+
+        .slide {
+            position: absolute; inset: 0;
+            background-size: cover; background-position: center;
+            opacity: 0; transition: opacity 2s ease-in-out;
+        }
+
+        .slide.active { opacity: 1; }
+
+        .overlay {
+            position: fixed; inset: 0; z-index: 1;
+            background: linear-gradient(160deg,
+                rgba(3, 10, 5, 0.88) 0%,
+                rgba(3, 12, 6, 0.78) 50%,
+                rgba(3, 10, 5, 0.92) 100%);
+        }
+
+        .grid-overlay {
+            position: fixed; inset: 0; z-index: 2; pointer-events: none;
+            background-image:
+                linear-gradient(rgba(74, 222, 128, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(74, 222, 128, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* ─── LAYOUT ─── */
+        .app {
+            position: relative; z-index: 10;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            min-height: 100vh;
+        }
+
+        /* ─── HEADER ─── */
+        .header {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(5, 14, 8, 0.88);
+            backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1.5rem;
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+            gap: 1rem;
+        }
+
+        .header-left {
+            display: flex; align-items: center; gap: 1rem;
+        }
+
+        .back-btn {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.45rem 0.9rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 0.82rem; font-weight: 500;
+            cursor: pointer; text-decoration: none;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .back-btn:hover {
+            color: white; border-color: var(--border-hover);
+            background: rgba(74, 222, 128, 0.06);
+        }
+
+        .header-divider {
+            width: 1px; height: 28px;
+            background: var(--border);
+        }
+
+        .header-brand {
+            display: flex; align-items: center; gap: 0.6rem;
+        }
+
+        .brand-icon {
+            width: 32px; height: 32px;
+            background: linear-gradient(135deg, var(--green-500), var(--green-700));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem;
+            box-shadow: 0 3px 10px rgba(34, 197, 94, 0.25);
+        }
+
+        .brand-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.95rem; font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .brand-text span { color: var(--green-400); }
+
+        .header-right {
+            display: flex; align-items: center; gap: 0.75rem;
+        }
+
+        .location-badge {
+            display: flex; align-items: center; gap: 0.45rem;
+            padding: 0.4rem 0.9rem;
+            background: rgba(74, 222, 128, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.8rem; font-weight: 500;
+            color: var(--green-400);
+        }
+
+        .live-dot {
+            width: 7px; height: 7px;
+            background: var(--green-400);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--green-400);
+            animation: livePulse 2s infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* ─── PAGE TITLE AREA ─── */
+        .page-title-area {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 1rem;
+        }
+
+        .page-tag {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            padding: 0.3rem 0.8rem;
+            background: rgba(74, 222, 128, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            font-size: 0.75rem; font-weight: 600;
+            color: var(--green-400);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+        }
+
+        .page-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 700;
+            color: white;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .page-title .grad {
+            background: linear-gradient(135deg, #86efac, #22c55e);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* ─── KPI ROW ─── */
+        .kpi-row {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem 1.5rem;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .kpi-card {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.1rem 1.25rem;
+            display: flex; align-items: center; gap: 1rem;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            border-color: var(--border-hover);
+            background: var(--dark-card-hover);
+            transform: translateY(-2px);
+        }
+
+        .kpi-icon {
+            width: 42px; height: 42px; flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(21, 128, 61, 0.25));
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; color: var(--green-400);
+        }
+
+        .kpi-body { flex: 1; min-width: 0; }
+
+        .kpi-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.45rem; font-weight: 700;
+            color: white; line-height: 1.1;
+        }
+
+        .kpi-label {
+            font-size: 0.75rem; color: var(--text-muted);
+            margin-top: 0.2rem; font-weight: 500;
+            text-transform: uppercase; letter-spacing: 0.3px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .kpi-trend {
+            font-size: 0.78rem; font-weight: 600;
+            padding: 0.2rem 0.5rem; border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        .kpi-trend.up {
+            background: rgba(74, 222, 128, 0.12);
+            color: var(--green-400);
+        }
+
+        .kpi-trend.neutral {
+            background: rgba(251, 191, 36, 0.12);
+            color: #fbbf24;
+        }
+
+        /* ─── MAIN AREA ─── */
+        .main-area {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem 2rem;
+        }
+
+        /* ─── TABS ─── */
+        .tabs-wrapper {
+            display: flex; align-items: center; gap: 0.5rem;
+            background: rgba(10, 25, 15, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0.4rem;
+            margin-bottom: 1.25rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .tabs-wrapper::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            flex-shrink: 0;
+            display: flex; align-items: center; gap: 0.55rem;
+            padding: 0.7rem 1.25rem;
+            background: transparent;
+            border: none; border-radius: 10px;
+            color: var(--text-secondary);
+            font-size: 0.9rem; font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+        }
+
+        .tab-btn i { font-size: 1rem; }
+
+        .tab-btn:hover {
+            color: white;
+            background: rgba(74, 222, 128, 0.08);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--green-500), var(--green-700));
+            color: white;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.28);
+        }
+
+        /* ─── SOURCE PILLS ─── */
+        .source-bar {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .source-label {
+            font-size: 0.75rem; color: var(--text-muted);
+            font-weight: 500; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-right: 0.25rem;
+        }
+
+        .source-pill {
+            display: flex; align-items: center; gap: 0.4rem;
+            padding: 0.4rem 0.9rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 100px;
+            color: var(--text-secondary);
+            font-size: 0.8rem; font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .source-pill:hover {
+            color: white; border-color: var(--border-hover);
+        }
+
+        .source-pill.active {
+            background: rgba(74, 222, 128, 0.12);
+            border-color: rgba(74, 222, 128, 0.4);
+            color: var(--green-400);
+        }
+
+        /* ─── CONTENT PANELS ─── */
+        .panel { display: none; animation: panelIn 0.4s ease; }
+        .panel.active { display: block; }
+
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── SECTION GRID ─── */
+        .section-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ─── DATA CARD ─── */
+        .data-card {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .data-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--green-500), transparent);
+            opacity: 0; transition: opacity 0.3s;
+        }
+
+        .data-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+        }
+
+        .data-card:hover::before { opacity: 1; }
+
+        .data-card-header {
+            padding: 1.25rem 1.4rem 1rem;
+            display: flex; align-items: center; gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-icon {
+            width: 36px; height: 36px; flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(21, 128, 61, 0.25));
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; color: var(--green-400);
+        }
+
+        .card-title-group { flex: 1; }
+
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem; font-weight: 600; color: white;
+        }
+
+        .card-source {
+            font-size: 0.72rem; color: var(--text-muted);
+            font-weight: 500; margin-top: 0.1rem;
+        }
+
+        .data-card-body { padding: 1.25rem 1.4rem; }
+
+        /* ─── PROGRESS BARS ─── */
+        .metric-list { display: flex; flex-direction: column; gap: 0.85rem; }
+
+        .metric-item {}
+
+        .metric-top {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.35rem;
+        }
+
+        .metric-name {
+            font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;
+        }
+
+        .metric-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem; font-weight: 700; color: var(--green-400);
+        }
+
+        .progress-track {
+            height: 6px; background: rgba(255,255,255,0.07);
+            border-radius: 100px; overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%; border-radius: 100px;
+            background: linear-gradient(90deg, var(--green-600), var(--green-400));
+            transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 0;
+        }
+
+        .progress-fill.warn {
+            background: linear-gradient(90deg, #d97706, #fbbf24);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #b91c1c, #ef4444);
+        }
+
+        /* ─── CHART CARD ─── */
+        .chart-card {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.4rem;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+
+        .chart-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .chart-header-left {
+            display: flex; align-items: center; gap: 0.7rem;
+        }
+
+        .chart-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem; font-weight: 600; color: white;
+        }
+
+        .chart-subtitle {
+            font-size: 0.75rem; color: var(--text-muted); margin-top: 0.1rem;
+        }
+
+        .chart-badge {
+            padding: 0.25rem 0.65rem;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 100px;
+            font-size: 0.72rem; font-weight: 600; color: var(--green-400);
+        }
+
+        .chart-wrap { position: relative; }
+
+        canvas { width: 100% !important; max-height: 300px; }
+
+        /* ─── TWO COLUMN LAYOUT ─── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ─── COMING SOON CARD ─── */
+        .coming-soon {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .coming-soon-icon {
+            width: 64px; height: 64px; margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(21, 128, 61, 0.2));
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; color: var(--green-400); opacity: 0.7;
+        }
+
+        .coming-soon h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.05rem; font-weight: 600; color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .coming-soon p {
+            font-size: 0.875rem; color: var(--text-muted); line-height: 1.6;
+            max-width: 280px; margin: 0 auto;
+        }
+
+        .coming-pill {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            margin-top: 1.1rem;
+            padding: 0.35rem 0.85rem;
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 100px;
+            font-size: 0.75rem; font-weight: 600; color: #fbbf24;
+        }
+
+        /* ─── COMING SOON GRID ─── */
+        .coming-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+        }
+
+        /* ─── SUMMARY PANEL ─── */
+        .summary-strip {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem 1.4rem;
+            backdrop-filter: blur(12px);
+            margin-bottom: 1.5rem;
+            display: flex; align-items: flex-start; gap: 1rem;
+        }
+
+        .summary-icon {
+            width: 38px; height: 38px; flex-shrink: 0;
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.95rem; color: var(--green-400);
+        }
+
+        .summary-text {
+            font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7;
+        }
+
+        .summary-text strong { color: var(--green-400); font-weight: 600; }
+
+        /* ─── TABLE ─── */
+        .data-table-wrap {
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%; border-collapse: collapse; font-size: 0.875rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 0.65rem 1rem;
+            font-size: 0.72rem; font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .data-table tr:last-child td { border-bottom: none; }
+
+        .data-table tr:hover td {
+            background: rgba(74, 222, 128, 0.04);
+            color: white;
+        }
+
+        .td-val {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600; color: var(--green-400) !important;
+        }
+
+        .td-tag {
+            display: inline-block;
+            padding: 0.18rem 0.55rem;
+            border-radius: 100px;
+            font-size: 0.7rem; font-weight: 600;
+        }
+
+        .td-tag.good {
+            background: rgba(74, 222, 128, 0.1); color: var(--green-400);
+        }
+
+        .td-tag.warn {
+            background: rgba(251, 191, 36, 0.1); color: #fbbf24;
+        }
+
+        .td-tag.bad {
+            background: rgba(239, 68, 68, 0.1); color: #ef4444;
+        }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            position: relative; z-index: 10;
+            border-top: 1px solid var(--border);
+            background: rgba(5, 14, 8, 0.8);
+            backdrop-filter: blur(12px);
+            padding: 1.25rem 1.5rem;
+        }
+
+        .footer-inner {
+            max-width: 1400px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 0.75rem;
+        }
+
+        .footer-text {
+            font-size: 0.8rem; color: var(--text-muted);
+        }
+
+        .footer-sources {
+            display: flex; gap: 0.5rem; flex-wrap: wrap;
+        }
+
+        .source-chip {
+            padding: 0.2rem 0.6rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            font-size: 0.72rem; color: var(--text-muted); font-weight: 500;
+        }
+
+        /* ─── RESPONSIVE ─── */
+        @media (max-width: 1024px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); }
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+            .section-grid { grid-template-columns: 1fr; }
+            .back-btn span { display: none; }
+            .header-divider { display: none; }
+            .brand-text { display: none; }
+            .location-badge span { display: none; }
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 480px) {
+            .kpi-row { grid-template-columns: 1fr 1fr; }
+            .kpi-value { font-size: 1.2rem; }
+            .page-title { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-slideshow" id="slideshow"></div>
+    <div class="overlay"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="header-left">
+                    <a href="/" class="back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Início</span>
+                    </a>
+                    <div class="header-divider"></div>
+                    <div class="header-brand">
+                        <div class="brand-icon"><i class="fas fa-map-marked-alt" style="color:white;"></i></div>
+                        <span class="brand-text">Intel<span>Territorial</span></span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="location-badge">
+                        <div class="live-dot"></div>
+                        <span>Tianguá — CE</span>
+                        <i class="fas fa-leaf" style="font-size:0.7rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Title -->
+        <div class="page-title-area" data-aos="fade-up">
+            <div class="page-tag"><i class="fas fa-city"></i> Dashboard Urbano</div>
+            <h1 class="page-title">Infraestrutura Urbana em <span class="grad">Tianguá</span></h1>
+            <p class="page-subtitle">Análise integrada de saneamento, infraestrutura e vegetação — fontes IBGE, IPECE, SNIS, INPE</p>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="kpi-row" data-aos="fade-up" data-aos-delay="60">
+            <div class="kpi-card">
+                <div class="kpi-icon"><i class="fas fa-faucet"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">77,3%</div>
+                    <div class="kpi-label">Acesso à Rede de Água</div>
+                </div>
+                <div class="kpi-trend up"><i class="fas fa-arrow-up"></i> IBGE</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><i class="fas fa-toilet"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">31,8%</div>
+                    <div class="kpi-label">Rede de Esgoto</div>
+                </div>
+                <div class="kpi-trend neutral"><i class="fas fa-minus"></i> 2010</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><i class="fas fa-trash-alt"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">61,4%</div>
+                    <div class="kpi-label">Coleta de Resíduos</div>
+                </div>
+                <div class="kpi-trend up"><i class="fas fa-arrow-up"></i> Direta</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon"><i class="fas fa-tree"></i></div>
+                <div class="kpi-body">
+                    <div class="kpi-value">68%</div>
+                    <div class="kpi-label">Cobertura Vegetal</div>
+                </div>
+                <div class="kpi-trend up"><i class="fas fa-leaf"></i> INPE</div>
+            </div>
+        </div>
+
+        <!-- Main Area -->
+        <div class="main-area">
+
+            <!-- Main Tabs -->
+            <div class="tabs-wrapper" data-aos="fade-up" data-aos-delay="100">
+                <button class="tab-btn active" data-tab="saneamento">
+                    <i class="fas fa-tint"></i> Saneamento
+                </button>
+                <button class="tab-btn" data-tab="infraestrutura">
+                    <i class="fas fa-city"></i> Infraestrutura
+                </button>
+                <button class="tab-btn" data-tab="vegetacao">
+                    <i class="fas fa-tree"></i> Vegetação
+                </button>
+                <button class="tab-btn" data-tab="mapas" id="btnMapas">
+                    <i class="fas fa-map"></i> Mapas
+                    <span style="font-size:0.7rem;padding:0.15rem 0.45rem;background:rgba(74,222,128,0.15);border-radius:6px;margin-left:0.2rem;">↗</span>
+                </button>
+            </div>
+
+            <!-- ═══ SANEAMENTO ═══ -->
+            <div class="panel active" id="panel-saneamento" data-aos="fade-up" data-aos-delay="140">
+
+                <!-- Source pills -->
+                <div class="source-bar">
+                    <span class="source-label">Fonte:</span>
+                    <button class="source-pill active" data-src="san-ibge"><i class="fas fa-chart-bar"></i> IBGE</button>
+                    <button class="source-pill" data-src="san-ipece"><i class="fas fa-chart-line"></i> IPECE</button>
+                    <button class="source-pill" data-src="san-snis"><i class="fas fa-database"></i> SNIS</button>
+                </div>
+
+                <!-- IBGE Panel -->
+                <div class="panel active" id="san-ibge">
+                    <div class="summary-strip">
+                        <div class="summary-icon"><i class="fas fa-info-circle"></i></div>
+                        <div class="summary-text">
+                            Dados do <strong>Censo IBGE 2010</strong>. Tianguá apresenta cobertura razoável de abastecimento de água (77%), mas déficit crítico em esgotamento sanitário — apenas <strong>31,8%</strong> possui rede geral, enquanto <strong>43,7%</strong> utiliza escoadouros inadequados.
+                        </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="two-col">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <div class="chart-header-left">
+                                    <div class="card-icon"><i class="fas fa-faucet"></i></div>
+                                    <div>
+                                        <div class="chart-title">Abastecimento de Água</div>
+                                        <div class="chart-subtitle">Distribuição por tipo de acesso</div>
+                                    </div>
+                                </div>
+                                <span class="chart-badge">IBGE 2010</span>
+                            </div>
+                            <div class="chart-wrap">
+                                <canvas id="chartAgua"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <div class="chart-header-left">
+                                    <div class="card-icon"><i class="fas fa-toilet"></i></div>
+                                    <div>
+                                        <div class="chart-title">Esgotamento Sanitário</div>
+                                        <div class="chart-subtitle">Tipo de escoamento por domicílio</div>
+                                    </div>
+                                </div>
+                                <span class="chart-badge">IBGE 2010</span>
+                            </div>
+                            <div class="chart-wrap">
+                                <canvas id="chartEsgoto"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data cards with progress bars -->
+                    <div class="section-grid">
+                        <div class="data-card">
+                            <div class="data-card-header">
+                                <div class="card-icon"><i class="fas fa-tint"></i></div>
+                                <div class="card-title-group">
+                                    <div class="card-title">Abastecimento de Água</div>
+                                    <div class="card-source">IBGE — Censo 2010</div>
+                                </div>
+                            </div>
+                            <div class="data-card-body">
+                                <div class="metric-list">
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Rede geral</span>
+                                            <span class="metric-value">77,28%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="77.28"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Sem água canalizada</span>
+                                            <span class="metric-value">11,17%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill warn" data-width="11.17"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Poço na propriedade</span>
+                                            <span class="metric-value">3,76%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="3.76"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Poço fora da propriedade</span>
+                                            <span class="metric-value">1,72%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="1.72"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Outra forma</span>
+                                            <span class="metric-value">0,45%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="0.45"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="data-card">
+                            <div class="data-card-header">
+                                <div class="card-icon"><i class="fas fa-toilet"></i></div>
+                                <div class="card-title-group">
+                                    <div class="card-title">Esgotamento Sanitário</div>
+                                    <div class="card-source">IBGE — Censo 2010</div>
+                                </div>
+                            </div>
+                            <div class="data-card-body">
+                                <div class="metric-list">
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Outro escoadouro</span>
+                                            <span class="metric-value">43,74%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill danger" data-width="43.74"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Rede geral</span>
+                                            <span class="metric-value">31,77%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="31.77"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Fossa séptica</span>
+                                            <span class="metric-value">10,17%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill warn" data-width="10.17"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Sem banheiro</span>
+                                            <span class="metric-value">7,80%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill danger" data-width="7.80"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="data-card">
+                            <div class="data-card-header">
+                                <div class="card-icon"><i class="fas fa-trash-alt"></i></div>
+                                <div class="card-title-group">
+                                    <div class="card-title">Destino do Lixo</div>
+                                    <div class="card-source">IBGE — Censo 2010</div>
+                                </div>
+                            </div>
+                            <div class="data-card-body">
+                                <div class="metric-list">
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Outro destino</span>
+                                            <span class="metric-value">38,59%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill warn" data-width="38.59"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Coleta direta</span>
+                                            <span class="metric-value">31,81%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="31.81"></div></div>
+                                    </div>
+                                    <div class="metric-item">
+                                        <div class="metric-top">
+                                            <span class="metric-name">Coleta em caçamba</span>
+                                            <span class="metric-value">29,60%</span>
+                                        </div>
+                                        <div class="progress-track"><div class="progress-fill" data-width="29.60"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-header-left">
+                                <div class="card-icon"><i class="fas fa-table"></i></div>
+                                <div>
+                                    <div class="chart-title">Resumo de Indicadores — Saneamento</div>
+                                    <div class="chart-subtitle">IBGE Censo 2010 · Tianguá, CE</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="data-table-wrap">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Indicador</th>
+                                        <th>Categoria</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>Rede geral de água</td><td>Abastecimento</td><td class="td-val">77,28%</td><td><span class="td-tag good">Adequado</span></td></tr>
+                                    <tr><td>Rede geral de esgoto</td><td>Esgotamento</td><td class="td-val">31,77%</td><td><span class="td-tag bad">Crítico</span></td></tr>
+                                    <tr><td>Fossa séptica</td><td>Esgotamento</td><td class="td-val">10,17%</td><td><span class="td-tag warn">Regular</span></td></tr>
+                                    <tr><td>Coleta de lixo (direta + caçamba)</td><td>Resíduos</td><td class="td-val">61,41%</td><td><span class="td-tag warn">Regular</span></td></tr>
+                                    <tr><td>Sem banheiro</td><td>Esgotamento</td><td class="td-val">7,80%</td><td><span class="td-tag bad">Crítico</span></td></tr>
+                                    <tr><td>Outro escoadouro</td><td>Esgotamento</td><td class="td-val">43,74%</td><td><span class="td-tag bad">Crítico</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IPECE Panel -->
+                <div class="panel" id="san-ipece">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-chart-line"></i></div>
+                            <h3>Dados IPECE — Saneamento</h3>
+                            <p>Indicadores da CAGECE e abastecimento urbano serão integrados em breve.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> CAGECE 2025 em breve</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SNIS Panel -->
+                <div class="panel" id="san-snis">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-database"></i></div>
+                            <h3>Dados SNIS — Resíduos Sólidos</h3>
+                            <p>Drenagem urbana, água e esgoto do Sistema Nacional de Informações sobre Saneamento.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> SNIS 2022 em breve</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ INFRAESTRUTURA ═══ -->
+            <div class="panel" id="panel-infraestrutura">
+                <div class="source-bar">
+                    <span class="source-label">Fonte:</span>
+                    <button class="source-pill active" data-src="inf-ipece"><i class="fas fa-chart-line"></i> IPECE</button>
+                    <button class="source-pill" data-src="inf-ibge"><i class="fas fa-chart-bar"></i> IBGE</button>
+                    <button class="source-pill" data-src="inf-ipea"><i class="fas fa-chart-pie"></i> IPEA</button>
+                </div>
+                <div class="panel active" id="inf-ipece">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-bolt"></i></div>
+                            <h3>Energia Elétrica — ENEL</h3>
+                            <p>Cobertura elétrica por bairro e índices de consumo residencial e comercial.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> ENEL 2025 em breve</div>
+                        </div>
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-road"></i></div>
+                            <h3>Transportes — DETRAN</h3>
+                            <p>Frota de veículos, malha viária e indicadores de mobilidade urbana.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> DETRAN 2024 em breve</div>
+                        </div>
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-home"></i></div>
+                            <h3>Habitação — IPECE</h3>
+                            <p>Déficit habitacional, tipo de construção e ocupação do solo por setor censitário.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> Em desenvolvimento</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="inf-ibge">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-chart-bar"></i></div>
+                            <h3>Infraestrutura Urbana — IBGE</h3>
+                            <p>Dados do Censo 2022 sobre logradouros, equipamentos públicos e serviços urbanos.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> Censo 2022 em breve</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="inf-ipea">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-coins"></i></div>
+                            <h3>PIB Municipal — IPEA</h3>
+                            <p>Produto Interno Bruto, empregos formais e indicadores econômicos de Tianguá.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> Dados econômicos em breve</div>
+                        </div>
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-briefcase"></i></div>
+                            <h3>Mercado de Trabalho — IPEA</h3>
+                            <p>Taxas de emprego, setores econômicos e distribuição de renda por quintil.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> Em desenvolvimento</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ VEGETAÇÃO ═══ -->
+            <div class="panel" id="panel-vegetacao">
+                <div class="source-bar">
+                    <span class="source-label">Fonte:</span>
+                    <button class="source-pill active" data-src="veg-inpe"><i class="fas fa-satellite"></i> INPE</button>
+                    <button class="source-pill" data-src="veg-ibge"><i class="fas fa-chart-bar"></i> IBGE</button>
+                    <button class="source-pill" data-src="veg-ipece"><i class="fas fa-chart-line"></i> IPECE</button>
+                </div>
+                <div class="panel active" id="veg-inpe">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-satellite"></i></div>
+                            <h3>Cobertura do Solo — MapBiomas</h3>
+                            <p>Classificação do uso e cobertura do solo por imagens de satélite com resolução de 30m.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> MapBiomas 2024 em breve</div>
+                        </div>
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-fire"></i></div>
+                            <h3>Focos de Calor — INPE</h3>
+                            <p>Monitoramento de queimadas e desmatamento na região de Tianguá e entorno.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> INPE 2024 em breve</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="veg-ibge">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-leaf"></i></div>
+                            <h3>Dados Territoriais — IBGE</h3>
+                            <p>Malha municipal, biomas e áreas de proteção ambiental do Censo 2022.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> Censo 2022 em breve</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" id="veg-ipece">
+                    <div class="coming-grid">
+                        <div class="coming-soon">
+                            <div class="coming-soon-icon"><i class="fas fa-cloud-rain"></i></div>
+                            <h3>Clima e Ambiente — FUNCEME</h3>
+                            <p>Pluviometria, temperatura e características climáticas da região serrana do Ceará.</p>
+                            <div class="coming-pill"><i class="fas fa-clock"></i> FUNCEME em breve</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /main-area -->
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-inner">
+                <span class="footer-text">&copy; 2025 Inteligência Territorial — Tianguá, CE. Dados de acesso público.</span>
+                <div class="footer-sources">
+                    <span class="source-chip">IBGE 2010</span>
+                    <span class="source-chip">IPECE</span>
+                    <span class="source-chip">SNIS 2022</span>
+                    <span class="source-chip">INPE/MapBiomas</span>
+                    <span class="source-chip">IPEA</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 700, once: true, offset: 60 });
+
+        /* ─── CHART DEFAULTS ─── */
+        Chart.defaults.color = 'rgba(255,255,255,0.55)';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 12;
+
+        const GREENS = ['#22c55e', '#4ade80', '#86efac', '#15803d', '#166534', '#bbf7d0'];
+        const MIXED  = ['#22c55e', '#fbbf24', '#ef4444', '#60a5fa', '#a78bfa', '#fb923c'];
+
+        function makeChart(id, type, labels, data, colors, opts = {}) {
+            const ctx = document.getElementById(id);
+            if (!ctx) return null;
+            return new Chart(ctx, {
+                type,
+                data: {
+                    labels,
+                    datasets: [{ data, backgroundColor: colors,
+                        borderColor: 'rgba(5,14,8,0.6)', borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: 'rgba(255,255,255,0.6)', padding: 14, boxWidth: 12, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(5,14,8,0.95)',
+                            borderColor: 'rgba(74,222,128,0.3)',
+                            borderWidth: 1,
+                            titleColor: '#4ade80',
+                            bodyColor: 'rgba(255,255,255,0.8)',
+                            callbacks: {
+                                label: ctx => ` ${ctx.parsed || ctx.raw}%`
+                            }
+                        }
+                    },
+                    ...opts
+                }
+            });
+        }
+
+        /* Water chart */
+        makeChart('chartAgua', 'doughnut',
+            ['Rede geral', 'Sem canalização', 'Poço próprio', 'Poço fora', 'Outra forma'],
+            [77.28, 11.17, 3.76, 1.72, 0.45],
+            ['#22c55e', '#ef4444', '#4ade80', '#86efac', '#bbf7d0'],
+            { cutout: '62%' }
+        );
+
+        /* Sewer chart */
+        makeChart('chartEsgoto', 'doughnut',
+            ['Outro escoadouro', 'Rede geral', 'Fossa séptica', 'Sem banheiro', 'Vala', 'Rio/lago'],
+            [43.74, 31.77, 10.17, 7.80, 4.52, 2.00],
+            ['#ef4444', '#22c55e', '#fbbf24', '#b91c1c', '#fb923c', '#60a5fa'],
+            { cutout: '62%' }
+        );
+
+        /* ─── PROGRESS BARS ─── */
+        function animateProgress() {
+            document.querySelectorAll('.progress-fill').forEach(el => {
+                const w = parseFloat(el.dataset.width);
+                setTimeout(() => { el.style.width = w + '%'; }, 200);
+            });
+        }
+
+        const progressObserver = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) animateProgress(); });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.metric-list').forEach(el => progressObserver.observe(el));
+
+        /* ─── TAB SYSTEM ─── */
+        const mainTabs   = document.querySelectorAll('[data-tab]');
+        const mainPanels = document.querySelectorAll('[id^="panel-"]');
+
+        mainTabs.forEach(btn => {
+            if (btn.dataset.tab === 'mapas') {
+                btn.addEventListener('click', () => window.location.href = '/mapas/');
+                return;
+            }
+            btn.addEventListener('click', () => {
+                mainTabs.forEach(t => t.classList.remove('active'));
+                mainPanels.forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                const target = document.getElementById('panel-' + btn.dataset.tab);
+                if (target) target.classList.add('active');
+                // auto-select first source pill inside
+                if (target) {
+                    const firstPill = target.querySelector('.source-pill');
+                    const firstSrc = firstPill && firstPill.dataset.src;
+                    if (firstSrc) activateSource(target, firstSrc);
+                }
+            });
+        });
+
+        /* ─── SOURCE PILLS ─── */
+        function activateSource(panel, srcId) {
+            panel.querySelectorAll('.source-pill').forEach(p => p.classList.remove('active'));
+            panel.querySelectorAll('[id]:not([id^="panel-"])').forEach(p => p.classList.remove('active'));
+            const pill = panel.querySelector(`[data-src="${srcId}"]`);
+            if (pill) pill.classList.add('active');
+            const srcPanel = document.getElementById(srcId);
+            if (srcPanel) srcPanel.classList.add('active');
+        }
+
+        document.querySelectorAll('.source-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                const panel = pill.closest('.panel');
+                activateSource(panel, pill.dataset.src);
+            });
+        });
+
+        /* ─── SLIDESHOW ─── */
+        const imagensPaths = [
+            "{% static 'imagem1.webp' %}",
+            "{% static 'imagem2.webp' %}",
+            "{% static 'imagem3.webp' %}",
+            "{% static 'imagem4.jpeg' %}",
+            "{% static 'imagem5.jpeg' %}",
+            "{% static 'imagem6.jpeg' %}",
+            "{% static 'imagem7.jpeg' %}",
+            "{% static 'imagem8.jpeg' %}",
+            "{% static 'imagem9.jpeg' %}",
+            "{% static 'imagem10.jpeg' %}",
+            "{% static 'imagem11.jpeg' %}",
+            "{% static 'imagem12.jpeg' %}"
+        ];
+
+        function carregarImagens() {
+            const sw = document.getElementById('slideshow');
+            let loaded = 0;
+            imagensPaths.forEach((path, i) => {
+                const img = new Image();
+                img.onload = () => {
+                    loaded++;
+                    const slide = document.createElement('div');
+                    slide.className = 'slide' + (loaded === 1 ? ' active' : '');
+                    slide.style.backgroundImage = `url('${img.src}')`;
+                    sw.appendChild(slide);
+                    if (loaded === imagensPaths.length) startSlideshow();
+                };
+                img.onerror = () => {
+                    loaded++;
+                    if (loaded === imagensPaths.length && sw.children.length === 0) usarPadrao();
+                    else if (loaded === imagensPaths.length) startSlideshow();
+                };
+                img.src = path;
+            });
+        }
+
+        function usarPadrao() {
+            const urls = [
+                'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=1920&h=1080&fit=crop',
+                'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1920&h=1080&fit=crop',
+                'https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1920&h=1080&fit=crop',
+            ];
+            const sw = document.getElementById('slideshow');
+            urls.forEach((url, i) => {
+                const s = document.createElement('div');
+                s.className = 'slide' + (i === 0 ? ' active' : '');
+                s.style.backgroundImage = `url('${url}')`;
+                sw.appendChild(s);
+            });
+            startSlideshow();
+        }
+
+        function startSlideshow() {
+            const slides = document.querySelectorAll('.slide');
+            if (slides.length <= 1) return;
+            let idx = 0;
+            setInterval(() => {
+                slides[idx].classList.remove('active');
+                idx = (idx + 1) % slides.length;
+                slides[idx].classList.add('active');
+            }, 7000);
+        }
+
+        carregarImagens();
+    </script>
+</body>
+</html>
