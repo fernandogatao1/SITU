@@ -1,8 +1,7 @@
 /**
- * Assinatura visual do painel de branding (fundo escuro).
- * Camadas: grid sutil + glow radial verde + curvas de nível luminosas
- * (isolinhas de relevo desenhadas no load, como um HUD cartográfico).
- * Decorativo → aria-hidden; o movimento é desativado por prefers-reduced-motion.
+ * Assinatura do painel de branding (auth): grade sutil + glow azul + curvas de
+ * nível luminosas em azul, sobre fundo navy. Decorativo → aria-hidden;
+ * o movimento é desativado por prefers-reduced-motion.
  */
 export default function ThemeBackground() {
   const rings = [
@@ -15,41 +14,37 @@ export default function ThemeBackground() {
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {/* Grid sutil */}
+      {/* Grade sutil */}
       <div
-        className="absolute inset-0 opacity-[0.5]"
+        className="absolute inset-0 opacity-50"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)',
+            'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)',
           backgroundSize: '44px 44px',
           maskImage: 'radial-gradient(120% 80% at 30% 20%, #000 40%, transparent 100%)',
+          WebkitMaskImage: 'radial-gradient(120% 80% at 30% 20%, #000 40%, transparent 100%)',
         }}
       />
-      {/* Glow radial verde (discreto) */}
+      {/* Glow radial azul (discreto) */}
       <div
-        className="absolute -left-24 -top-24 h-[480px] w-[480px] rounded-full opacity-30 blur-3xl"
+        className="absolute -left-24 -top-24 h-[480px] w-[480px] rounded-full opacity-40 blur-3xl"
         style={{
           background:
-            'radial-gradient(circle, rgba(52,211,153,0.18) 0%, rgba(52,211,153,0.04) 45%, transparent 70%)',
+            'radial-gradient(circle, rgba(76,147,224,0.32) 0%, rgba(76,147,224,0.08) 45%, transparent 70%)',
         }}
       />
-      {/* Curvas de nível luminosas */}
-      <svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 1000 560"
-        preserveAspectRatio="xMidYMid slice"
-        fill="none"
-      >
+      {/* Curvas de nível luminosas (azul) */}
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid slice" fill="none">
         {rings.map((d, i) => (
           <path
             key={i}
             d={d}
-            stroke="#6EE7B7"
-            strokeOpacity={0.22}
+            stroke="#8FBEF0"
+            strokeOpacity={0.3}
             strokeWidth={1.25}
             strokeDasharray="1400"
             style={{
-              filter: 'drop-shadow(0 0 3px rgba(52,211,153,0.2))',
+              filter: 'drop-shadow(0 0 4px rgba(76,147,224,0.4))',
               animation: 'contour-draw 1.6s var(--ease-out) both',
               animationDelay: `${i * 0.14}s`,
             }}

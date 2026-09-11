@@ -5,8 +5,8 @@ const COLS = [
   {
     title: 'Plataforma',
     links: [
-      { label: 'Funcionalidades', href: '#funcionalidades' },
-      { label: 'Dados', href: '#dados' },
+      { label: 'Eixos do sistema', href: '#modulos' },
+      { label: 'Município', href: '#municipio' },
       { label: 'Entrar', href: '/login', route: true },
       { label: 'Criar conta', href: '/signup', route: true },
     ],
@@ -15,7 +15,7 @@ const COLS = [
     title: 'Institucional',
     links: [
       { label: 'Sobre o S.I.T.U', href: '#topo' },
-      { label: 'Fontes de dados', href: '#dados' },
+      { label: 'Fontes de dados', href: '#municipio' },
       { label: 'Contato', href: '#topo' },
     ],
   },

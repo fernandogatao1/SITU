@@ -1,72 +1,41 @@
-import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogIn, UserPlus } from 'lucide-react'
-import Logo from '@/components/brand/Logo'
-import Button from '@/components/ui/Button'
-import { cn } from '@/utils/cn'
+import { UserPlus } from 'lucide-react'
 
 const NAV_LINKS = [
-  { label: 'Funcionalidades', href: '#funcionalidades' },
-  { label: 'Plataforma', href: '#plataforma' },
-  { label: 'Dados', href: '#dados' },
+  { label: 'Quem somos', href: '#' },
+  { label: 'Nossos serviços', href: '#' },
+  { label: 'Tutoriais', href: '#' },
+  { label: 'Contato', href: '#' },
 ]
 
 /**
- * Navbar sticky clara com glassmorphism que aparece ao rolar.
+ * Navbar branca — reprodução fiel do material urbdash: links centrais em
+ * caixa-alta + botão "Faça seu cadastro" (pill navy) à direita.
  */
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   return (
-    <header
-      className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 ease-out',
-        scrolled
-          ? 'border-b border-line bg-canvas/80 backdrop-blur-xl'
-          : 'border-b border-transparent bg-transparent'
-      )}
-    >
-      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
-        <a href="#topo" className="flex items-center gap-2.5" aria-label="S.I.T.U — início">
-          <Logo size={28} />
-          <span className="hidden text-[13px] text-muted sm:inline">
-            Sistema de Inteligência Territorial Urbana
-          </span>
-        </a>
-
-        <div className="hidden items-center gap-1 md:flex">
+    <header className="fixed inset-x-0 top-0 z-50 bg-white">
+      <nav className="mx-auto flex h-16 max-w-7xl items-center px-5 sm:px-8">
+        <div className="hidden flex-1 items-center justify-center gap-8 md:flex">
           {NAV_LINKS.map((l) => (
             <a
-              key={l.href}
+              key={l.label}
               href={l.href}
-              className="rounded-md px-3 py-2 text-[14px] text-muted transition-colors duration-150 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="text-[13px] font-semibold uppercase tracking-wide text-[color:var(--color-canvas)]/70 transition-colors duration-150 hover:text-[color:var(--color-canvas)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {l.label}
             </a>
           ))}
         </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            fullWidth={false}
-            className="hidden sm:inline-flex"
-            onClick={() => navigate('/login')}
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/signup')}
+            className="inline-flex items-center gap-2 rounded-full bg-[color:var(--color-canvas)] px-5 py-2.5 text-[13px] font-semibold uppercase tracking-wide text-white shadow-sm transition-[background-color,transform] duration-150 ease-out hover:bg-[color:var(--color-canvas-deep)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/30"
           >
-            <LogIn size={16} aria-hidden="true" /> Login
-          </Button>
-          <Button variant="primary" size="sm" fullWidth={false} onClick={() => navigate('/signup')}>
-            <UserPlus size={16} aria-hidden="true" /> Cadastrar
-          </Button>
+            <UserPlus size={16} aria-hidden="true" /> Faça seu cadastro
+          </button>
         </div>
       </nav>
     </header>

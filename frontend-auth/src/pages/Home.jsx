@@ -1,24 +1,21 @@
+import { useState } from 'react'
 import Navbar from '@/components/landing/Navbar'
 import Hero from '@/components/landing/Hero'
-import Stats from '@/components/landing/Stats'
-import Features from '@/components/landing/Features'
-import CTA from '@/components/landing/CTA'
-import Footer from '@/components/landing/Footer'
+import { MUNICIPIOS } from '@/data/municipios'
 
 /**
- * Landing page do S.I.T.U — layout claro (white), mesma identidade das telas de auth.
+ * Home urbdash — reprodução fiel do material do designer (dobra única).
  */
 export default function Home() {
+  const [cityId, setCityId] = useState(MUNICIPIOS[0].id)
+  const municipio = MUNICIPIOS.find((m) => m.id === cityId) ?? MUNICIPIOS[0]
+
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="min-h-dvh">
       <Navbar />
       <main>
-        <Hero />
-        <Stats />
-        <Features />
-        <CTA />
+        <Hero municipio={municipio} municipios={MUNICIPIOS} onSelect={setCityId} />
       </main>
-      <Footer />
     </div>
   )
 }

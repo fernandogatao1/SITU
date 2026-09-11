@@ -1,42 +1,47 @@
 import { cn } from '@/utils/cn'
 
 /**
- * Marca do SITU: um "pin" cartográfico formado por uma curva de nível + ponto.
- * @param {{ size?: number, withWordmark?: boolean, className?: string, tone?: 'ink'|'invert'|'dark' }} props
+ * Logo urbdash: contorno do estado do Ceará + wordmark "urb" (bold) / "dash" (leve).
+ *
+ * ⚠️ PLACEHOLDER: o contorno abaixo é uma APROXIMAÇÃO do Ceará. Substituir pelo
+ * SVG oficial do designer (basta trocar o <path> do mapa mantendo o wordmark).
+ *
+ * @param {{ size?: number, withWordmark?: boolean, withTagline?: boolean, className?: string, tone?: 'light'|'dark' }} props
  */
-export default function Logo({ size = 28, withWordmark = true, className, tone = 'ink' }) {
-  const mark = tone === 'invert' ? '#ffffff' : tone === 'dark' ? '#34D399' : 'var(--color-primary)'
-  const text = tone === 'ink' ? 'var(--color-ink)' : '#ffffff'
+export default function Logo({ size = 30, withWordmark = true, withTagline = false, className, tone = 'light' }) {
+  const color = tone === 'dark' ? '#0A2A52' : '#ffffff'
 
   return (
     <span className={cn('inline-flex items-center gap-2.5', className)}>
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 32 32"
-        fill="none"
-        aria-hidden="true"
-        role="img"
-      >
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        {/* Aproximação do contorno do Ceará — trocar pelo SVG oficial */}
         <path
-          d="M16 3C10.2 3 5.5 7.6 5.5 13.3 5.5 21 16 29 16 29s10.5-8 10.5-15.7C26.5 7.6 21.8 3 16 3Z"
-          stroke={mark}
-          strokeWidth="2"
-        />
-        <path
-          d="M16 8.4c-2.7 0-4.9 2.2-4.9 4.9S13.3 18.2 16 18.2"
-          stroke={mark}
-          strokeWidth="2"
+          d="M7 3.5 L15 4 L17.5 6.5 L22 6 L24.5 9 L23 13 L25 16.5 L21 20 L20.5 24 L16.5 27.5 L14 24.5 L12.5 26 L10 22 L11 18 L8 15 L9.5 11 L6.5 8 Z"
+          stroke={color}
+          strokeWidth="1.6"
+          strokeLinejoin="round"
           strokeLinecap="round"
         />
-        <circle cx="16" cy="13.3" r="2.1" fill={mark} />
       </svg>
+
       {withWordmark && (
-        <span
-          className="font-display text-[19px] font-bold tracking-tight"
-          style={{ color: text }}
-        >
-          SITU
+        <span className="leading-none" style={{ color }}>
+          <span
+            className="font-display tracking-tight"
+            style={{ fontSize: `${Math.round(size * 0.72)}px`, lineHeight: 1 }}
+          >
+            <span className="font-extrabold">urb</span>
+            <span className="font-medium opacity-90">dash</span>
+          </span>
+          {withTagline && (
+            <span
+              className="mt-1 block font-medium leading-tight opacity-60"
+              style={{ fontSize: `${Math.max(10, Math.round(size * 0.24))}px` }}
+            >
+              Inteligência Territorial
+              <br />& Geolocalização
+            </span>
+          )}
         </span>
       )}
     </span>
